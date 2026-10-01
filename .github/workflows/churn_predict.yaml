@@ -26,6 +26,33 @@ jobs:
           pip install -e ".[dev]"
           pip install build
 
+      - name: Validate dataset
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from telco_churn.data import load_raw_dataset, validate_raw_dataset
+
+          path = Path("data/raw/Telco-Customer-Churn.csv")
+          data = load_raw_dataset(path)
+          validate_raw_dataset(data)
+
+          blank_total_charges = data["TotalCharges"].str.strip().eq("").sum()
+          churn_counts = data["Churn"].value_counts().to_dict()
+
+          if data.shape != (7043, 21):
+              raise ValueError(f"Unexpected dataset shape: {data.shape}")
+
+          if set(data["Churn"].unique()) != {"Yes", "No"}:
+              raise ValueError("Unexpected Churn values")
+
+          print(f"Dataset: {path}")
+          print(f"Shape: {data.shape[0]} rows x {data.shape[1]} columns")
+          print("Schema validation: PASSED")
+          print(f"Blank TotalCharges: {blank_total_charges}")
+          print(f"Churn distribution: {churn_counts}")
+          PY
+
       - name: Lint
         run: ruff check .
 

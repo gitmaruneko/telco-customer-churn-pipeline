@@ -26,6 +26,15 @@ jobs:
           pip install -e ".[dev]"
           pip install build
 
+      - name: Download dataset
+        run: |
+          mkdir -p data/raw
+          curl --fail --location --silent --show-error \
+            --output data/raw/Telco-Customer-Churn.csv \
+            https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv
+
+          test -s data/raw/Telco-Customer-Churn.csv
+
       - name: Validate dataset
         run: |
           python - <<'PY'

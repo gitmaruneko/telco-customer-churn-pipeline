@@ -87,3 +87,20 @@ The first priority is to understand the lifecycle of a machine learning pipeline
 ### Summary
 
 This note is meant to track project understanding, learning progress, and concept review. The formal project information is kept in [README.md](README.md).
+
+---
+
+## 2026-10-02
+
+### Session 1 — Data Understanding, Validation & Analysis (90 minutes)
+
+**Goal:** Turn the raw CSV into a trustworthy, documented dataset that is ready for ML.
+
+| Time | Activity | Status | Implementation / notes |
+| --- | --- | --- | --- |
+| 0–10 min | Repository setup | [x] Complete | [pyproject.toml](pyproject.toml), [README.md](README.md) |
+| 10–25 min | Load and inspect | [x] Complete | [notebooks/01_data_exploration.ipynb](notebooks/01_data_exploration.ipynb) |
+| 25–45 min | Validation | [ ] In progress | [src/telco_churn/data.py](src/telco_churn/data.py), [tests/test_data.py](tests/test_data.py) |
+| 45–65 min | Cleaning | [ ] Not started | Add implementation location when completed. |
+| 65–82 min | Analysis | [x] Complete | [notebooks/01_data_exploration.ipynb](notebooks/01_data_exploration.ipynb); summarize key findings in [README.md](README.md). |
+| 82–90 min | Checkpoint | [ ] In progress | Add the README findings and commit the work. |

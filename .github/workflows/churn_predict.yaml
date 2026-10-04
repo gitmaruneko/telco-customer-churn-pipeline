@@ -40,7 +40,8 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          from telco_churn.data import load_raw_dataset, validate_raw_dataset
+          from telco_churn.data import load_raw_dataset
+          from telco_churn.validation import validate_raw_dataset
 
           path = Path("data/raw/Telco-Customer-Churn.csv")
           data = load_raw_dataset(path)

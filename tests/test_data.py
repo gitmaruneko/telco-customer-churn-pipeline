@@ -1,7 +1,11 @@
 import pandas as pd
 import pytest
 
-from telco_churn.data import EXPECTED_COLUMNS, DatasetValidationError, validate_raw_dataset
+from telco_churn.validation import (
+    EXPECTED_COLUMNS,
+    DatasetValidationError,
+    validate_raw_dataset,
+)
 
 
 def make_valid_data() -> pd.DataFrame:

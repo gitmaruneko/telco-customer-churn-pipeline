@@ -131,7 +131,7 @@ def build_preprocessor(features):
 def main() -> None:
     data_path = Path(__file__).resolve().parents[2] / "data" / "raw" / "Telco-Customer-Churn.csv"
     data = load_raw_dataset(data_path)
-    cleaned_data = clean_data(data)
+    _cleaned_data = clean_data(data)
     # customer_ids, features, target = split_features_target(cleaned_data)
 
 

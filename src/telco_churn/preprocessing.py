@@ -101,18 +101,8 @@ def main() -> None:
     data_path = Path(__file__).resolve().parents[2] / "data" / "raw" / "Telco-Customer-Churn.csv"
     data = load_raw_dataset(data_path)
     cleaned_data = clean_data(data)
-    customer_ids, features, target = split_features_target(cleaned_data)
-    # categorical_features = features.select_dtypes(include="object").columns.tolist()
-    # # print(categorical_features)
-    # encoder = OneHotEncoder(handle_unknown="ignore")
-    # preprocessor = ColumnTransformer(
-    #     transformers=[
-    #         ("categorical", encoder, categorical_features)
-    #     ],
-    #     remainder="passthrough"
-    # )
-    numerical_features = features.select_dtypes(include="number").columns.tolist()
-    # print(numerical_features)
+    # customer_ids, features, target = split_features_target(cleaned_data)
+
 
 
 if __name__ == "__main__":

@@ -43,7 +43,38 @@ This helps identify at-risk customers and supports retention actions.
 - `Churn` is mapped from `Yes`/`No` to `1`/`0` so it can be used as a binary classification target.
 - `customerID` is excluded from the model features because it identifies a customer rather than describing customer behavior. It is returned separately so predictions can be associated with the corresponding customer.
 - Categorical feature columns are one-hot encoded because their values are labels, not quantities with a meaningful numeric order. `handle_unknown="ignore"` allows the encoder to process categories not seen when it was fitted.
-- The `ColumnTransformer` defines one-hot encoding for categorical columns and passes non-categorical columns through unchanged. To prevent data leakage, fit the preprocessor on the training data only, then use it to transform both training and test data.
+- Numerical feature columns are standardized so they are on comparable scales, which helps Logistic Regression converge.
+- The `ColumnTransformer` applies one-hot encoding to categorical columns and standardization to numerical columns. To prevent data leakage, fit the preprocessor on the training data only, then use it to transform both training and test data.
+
+## Train/Test Split
+
+- The data is split into 80% training data and 20% test data (`test_size=0.20`).
+- `random_state=42` is fixed so the same split can be reproduced across runs.
+- The split is stratified by the `Churn` target (`stratify=target`) to preserve the churn-class proportions in both sets.
+
+## Model Evaluation
+
+The dataset was split into 80% training data and 20% test data using
+`random_state=42` and stratification on the `Churn` target.
+
+| Metric | Value |
+| --- | ---: |
+| Accuracy | 0.8055 |
+| Precision | 0.6572 |
+| Recall | 0.5588 |
+| F1 Score | 0.6040 |
+
+Confusion matrix:
+
+- True Negative: 926
+- False Positive: 109
+- False Negative: 165
+- True Positive: 209
+
+A false negative means that a customer actually churned but the model
+predicted that the customer would not churn. In this experiment, there
+were 165 false negatives, meaning the model missed 165 customers who
+actually churned.
 
 ## Project Structure
 

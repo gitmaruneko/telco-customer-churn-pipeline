@@ -1,3 +1,6 @@
+import argparse
+from pathlib import Path
+
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
@@ -8,11 +11,31 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
-from telco_churn.config import PROJECT_ROOT, load_model_settings
+from telco_churn.config import ModelSettings, load_model_settings
 from telco_churn.data import load_raw_dataset
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.preprocessing import clean_data, split_features_target
 from telco_churn.validation import validate_raw_dataset
+
+
+def build_argument_parser(settings: ModelSettings) -> argparse.ArgumentParser:
+    """Create command-line options, using model settings as their defaults."""
+    parser = argparse.ArgumentParser(
+        description="Train and compare churn classification models."
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=settings.dataset_path,
+        help="Path to the input customer CSV.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=settings.output_directory,
+        help="Directory for prediction and model comparison CSV files.",
+    )
+    return parser
 
 
 def split_train_test(features, target, *, test_size: float = 0.20, random_state: int = 42):
@@ -27,9 +50,10 @@ def split_train_test(features, target, *, test_size: float = 0.20, random_state:
     return X_train, X_test, y_train, y_test
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     settings = load_model_settings()
-    data_path = PROJECT_ROOT / "data" / "raw" / "Telco-Customer-Churn.csv"
+    args = build_argument_parser(settings).parse_args(argv)
+    data_path = args.input
     data = load_raw_dataset(data_path)
     validate_raw_dataset(data)
     cleaned_data = clean_data(data)
@@ -104,9 +128,9 @@ def main() -> None:
     print("\nPredictions:")
     print(predictions_df.head())
 
-    settings.output_directory.mkdir(parents=True, exist_ok=True)
-    predictions_path = settings.output_directory / settings.predictions_filename
-    comparison_path = settings.output_directory / settings.comparison_filename
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    predictions_path = args.output_dir / settings.predictions_filename
+    comparison_path = args.output_dir / settings.comparison_filename
     predictions_df.to_csv(predictions_path, index=False)
     metrics.to_csv(comparison_path, index=False)
     print(f"\nPredictions saved to: {predictions_path}")

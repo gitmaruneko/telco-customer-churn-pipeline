@@ -58,10 +58,22 @@ This helps identify at-risk customers and supports retention actions.
 using the same stratified 80/20 split (`random_state=42`). Both pipelines use
 the same preprocessing steps, and the script writes metrics and test
 predictions to the configured output paths. The split settings, model
-parameters, output directory, and output filenames are configurable in
-[`config/model.toml`](config/model.toml). By default, results are written to
-`output/model_comparison.csv` and `output/predictions.csv`; relative output
-directories are resolved from the project root.
+parameters, default input path, output directory, and output filenames are
+configurable in [`config/model.toml`](config/model.toml). By default, results
+are written to `output/model_comparison.csv` and `output/predictions.csv`;
+relative output directories are resolved from the project root.
+
+Override the input CSV or output directory from the command line with
+`--input` and `--output-dir`:
+
+```powershell
+python -m telco_churn.train `
+  --input data/raw/Telco-Customer-Churn.csv `
+  --output-dir output
+```
+
+If omitted, both options use the paths configured in `config/model.toml`.
+Command-line paths are interpreted relative to the current working directory.
 
 Results on the provided dataset:
 

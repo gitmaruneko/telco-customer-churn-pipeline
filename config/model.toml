@@ -8,6 +8,9 @@ max_iter = 1000
 [models.decision_tree]
 random_state = 42
 
+[input]
+dataset_path = "data/raw/Telco-Customer-Churn.csv"
+
 [output]
 directory = "output"
 predictions_filename = "predictions.csv"

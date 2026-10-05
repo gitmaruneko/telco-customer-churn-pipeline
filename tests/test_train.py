@@ -1,8 +1,12 @@
 import pandas as pd
 
-from telco_churn.config import DEFAULT_CONFIG_PATH, PROJECT_ROOT, load_model_settings
+from telco_churn.config import (
+    DEFAULT_CONFIG_PATH,
+    PROJECT_ROOT,
+    load_model_settings,
+)
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
-from telco_churn.train import split_train_test
+from telco_churn.train import build_argument_parser, split_train_test
 
 
 def test_model_settings_load_from_project_configuration() -> None:
@@ -13,6 +17,7 @@ def test_model_settings_load_from_project_configuration() -> None:
     assert settings.split_random_state == 42
     assert settings.logistic_regression_max_iter == 1000
     assert settings.decision_tree_random_state == 42
+    assert settings.dataset_path == PROJECT_ROOT / "data" / "raw" / "Telco-Customer-Churn.csv"
     assert settings.output_directory == PROJECT_ROOT / "output"
     assert settings.predictions_filename == "predictions.csv"
     assert settings.comparison_filename == "model_comparison.csv"
@@ -32,6 +37,9 @@ max_iter = 500
 [models.decision_tree]
 random_state = 17
 
+[input]
+dataset_path = "data/custom.csv"
+
 [output]
 directory = "reports"
 predictions_filename = "test_predictions.csv"
@@ -46,9 +54,32 @@ comparison_filename = "metrics.csv"
     assert settings.split_random_state == 13
     assert settings.logistic_regression_max_iter == 500
     assert settings.decision_tree_random_state == 17
+    assert settings.dataset_path == PROJECT_ROOT / "data" / "custom.csv"
     assert settings.output_directory == PROJECT_ROOT / "reports"
     assert settings.predictions_filename == "test_predictions.csv"
     assert settings.comparison_filename == "metrics.csv"
+
+
+def test_argument_parser_uses_settings_defaults_and_accepts_path_overrides(
+    tmp_path,
+) -> None:
+    settings = load_model_settings()
+    parser = build_argument_parser(settings)
+
+    defaults = parser.parse_args([])
+    overrides = parser.parse_args(
+        [
+            "--input",
+            str(tmp_path / "customers.csv"),
+            "--output-dir",
+            str(tmp_path / "results"),
+        ]
+    )
+
+    assert defaults.input == settings.dataset_path
+    assert defaults.output_dir == settings.output_directory
+    assert overrides.input == tmp_path / "customers.csv"
+    assert overrides.output_dir == tmp_path / "results"
 
 
 def test_train_test_split_is_reproducible_and_stratified() -> None:

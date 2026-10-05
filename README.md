@@ -52,7 +52,7 @@ This helps identify at-risk customers and supports retention actions.
 - `random_state=42` is fixed so the same split can be reproduced across runs.
 - The split is stratified by the `Churn` target (`stratify=target`) to preserve the churn-class proportions in both sets.
 
-## Model Evaluation
+## Model Comparison and Evaluation
 
 `python -m telco_churn.train` trains Logistic Regression and a Decision Tree
 using the same stratified 80/20 split (`random_state=42`). Both pipelines use
@@ -75,19 +75,20 @@ label order is `0` = no churn and `1` = churn):
 | Decision Tree | 832 | 203 | 188 | 186 |
 
 In this baseline run, Logistic Regression performs better on every reported
-test metric. The default Decision Tree reaches 0.9980 training accuracy but
-only 0.7225 test accuracy, a large generalization gap that suggests
-overfitting. A tree can express nonlinear rules and can be easier to turn into
-decision rules, but this unpruned tree does not generalize as well; limiting
-tree depth or tuning it with cross-validation would be a reasonable next step.
+test metric and has similar training and test accuracy. The default Decision
+Tree reaches 0.9980 training accuracy but only 0.7225 test accuracy, a large
+generalization gap that suggests overfitting. A tree can express nonlinear
+rules and can be easier to turn into decision rules, but this unpruned tree
+does not generalize as well; limiting tree depth or tuning it with
+cross-validation would be a reasonable next step. Logistic Regression is the
+stronger candidate in this comparison, but these holdout results alone do not
+establish a universally best or deployment-ready model.
 
 The metrics represent different costs: higher recall catches more customers
 who will churn, while higher precision means fewer retention efforts are spent
-on customers who would not churn. Here Logistic Regression has higher values
-for both, but the choice for deployment should still account for the relative
-cost of missed churn versus unnecessary interventions, plus interpretability
-and validation on additional data. These holdout results alone do not establish
-a universally best model.
+on customers who would not churn. The better model for deployment depends on
+the relative cost of missed churn versus unnecessary interventions, as well as
+interpretability and validation on additional data.
 
 ## Project Structure
 

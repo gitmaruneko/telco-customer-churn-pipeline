@@ -54,34 +54,47 @@ This helps identify at-risk customers and supports retention actions.
 
 ## Model Evaluation
 
-The dataset was split into 80% training data and 20% test data using
-`random_state=42` and stratification on the `Churn` target.
+`python -m telco_churn.train` trains Logistic Regression and a Decision Tree
+using the same stratified 80/20 split (`random_state=42`). Both pipelines use
+the same preprocessing steps, and the script writes the metrics and test
+predictions to `output/model_comparison.csv` and `output/predictions.csv`.
 
-| Metric | Value |
-| --- | ---: |
-| Accuracy | 0.8055 |
-| Precision | 0.6572 |
-| Recall | 0.5588 |
-| F1 Score | 0.6040 |
+Results on the provided dataset:
 
-Confusion matrix:
+| Model | Train Accuracy | Test Accuracy | Precision | Recall | F1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Logistic Regression | 0.8056 | 0.8055 | 0.6572 | 0.5588 | 0.6040 |
+| Decision Tree | 0.9980 | 0.7225 | 0.4781 | 0.4973 | 0.4875 |
 
-- True Negative: 926
-- False Positive: 109
-- False Negative: 165
-- True Positive: 209
+Confusion matrices (rows are actual labels and columns are predicted labels;
+label order is `0` = no churn and `1` = churn):
 
-A false negative means that a customer actually churned but the model
-predicted that the customer would not churn. In this experiment, there
-were 165 false negatives, meaning the model missed 165 customers who
-actually churned.
+| Model | True Negative | False Positive | False Negative | True Positive |
+| --- | ---: | ---: | ---: | ---: |
+| Logistic Regression | 926 | 109 | 165 | 209 |
+| Decision Tree | 832 | 203 | 188 | 186 |
+
+In this baseline run, Logistic Regression performs better on every reported
+test metric. The default Decision Tree reaches 0.9980 training accuracy but
+only 0.7225 test accuracy, a large generalization gap that suggests
+overfitting. A tree can express nonlinear rules and can be easier to turn into
+decision rules, but this unpruned tree does not generalize as well; limiting
+tree depth or tuning it with cross-validation would be a reasonable next step.
+
+The metrics represent different costs: higher recall catches more customers
+who will churn, while higher precision means fewer retention efforts are spent
+on customers who would not churn. Here Logistic Regression has higher values
+for both, but the choice for deployment should still account for the relative
+cost of missed churn versus unnecessary interventions, plus interpretability
+and validation on additional data. These holdout results alone do not establish
+a universally best model.
 
 ## Project Structure
 
 ```text
 data/               Raw and processed datasets
 notebooks/          Exploratory notebooks and experiments
-outputs/            Reports, predictions, and model artifacts
+output/             Model comparison metrics and customer predictions
 src/telco_churn/    Reusable production modules
 tests/              Unit tests for project logic
 ```
@@ -96,6 +109,7 @@ python -m pip install -e ".[dev]"
 
 ```powershell
 python -m telco_churn.validation
+python -m telco_churn.train
 pytest
 ruff check .
 ```

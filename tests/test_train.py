@@ -1,7 +1,54 @@
 import pandas as pd
 
+from telco_churn.config import DEFAULT_CONFIG_PATH, PROJECT_ROOT, load_model_settings
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.train import split_train_test
+
+
+def test_model_settings_load_from_project_configuration() -> None:
+    settings = load_model_settings()
+
+    assert DEFAULT_CONFIG_PATH.is_file()
+    assert settings.test_size == 0.20
+    assert settings.split_random_state == 42
+    assert settings.logistic_regression_max_iter == 1000
+    assert settings.decision_tree_random_state == 42
+    assert settings.output_directory == PROJECT_ROOT / "output"
+    assert settings.predictions_filename == "predictions.csv"
+    assert settings.comparison_filename == "model_comparison.csv"
+
+
+def test_model_settings_resolve_configured_output_directory(tmp_path) -> None:
+    config_path = tmp_path / "model.toml"
+    config_path.write_text(
+        """
+[split]
+test_size = 0.25
+random_state = 13
+
+[models.logistic_regression]
+max_iter = 500
+
+[models.decision_tree]
+random_state = 17
+
+[output]
+directory = "reports"
+predictions_filename = "test_predictions.csv"
+comparison_filename = "metrics.csv"
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    settings = load_model_settings(config_path)
+
+    assert settings.test_size == 0.25
+    assert settings.split_random_state == 13
+    assert settings.logistic_regression_max_iter == 500
+    assert settings.decision_tree_random_state == 17
+    assert settings.output_directory == PROJECT_ROOT / "reports"
+    assert settings.predictions_filename == "test_predictions.csv"
+    assert settings.comparison_filename == "metrics.csv"
 
 
 def test_train_test_split_is_reproducible_and_stratified() -> None:
@@ -31,8 +78,13 @@ def test_both_model_builders_fit_and_predict() -> None:
     )
     target = pd.Series([0, 1] * 6)
 
-    for build_model in (build_logistic_regression_model, build_decision_tree_model):
-        model = build_model(features)
+    logistic_model = build_logistic_regression_model(features, max_iter=2000)
+    tree_model = build_decision_tree_model(features, random_state=7)
+
+    assert logistic_model.named_steps["classifier"].max_iter == 2000
+    assert tree_model.named_steps["classifier"].random_state == 7
+
+    for model in (logistic_model, tree_model):
         model.fit(features, target)
 
         assert model.predict(features).shape == target.shape

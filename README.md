@@ -56,8 +56,12 @@ This helps identify at-risk customers and supports retention actions.
 
 `python -m telco_churn.train` trains Logistic Regression and a Decision Tree
 using the same stratified 80/20 split (`random_state=42`). Both pipelines use
-the same preprocessing steps, and the script writes the metrics and test
-predictions to `output/model_comparison.csv` and `output/predictions.csv`.
+the same preprocessing steps, and the script writes metrics and test
+predictions to the configured output paths. The split settings, model
+parameters, output directory, and output filenames are configurable in
+[`config/model.toml`](config/model.toml). By default, results are written to
+`output/model_comparison.csv` and `output/predictions.csv`; relative output
+directories are resolved from the project root.
 
 Results on the provided dataset:
 

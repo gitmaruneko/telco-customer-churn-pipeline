@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
@@ -10,36 +8,38 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
+from telco_churn.config import PROJECT_ROOT, load_model_settings
 from telco_churn.data import load_raw_dataset
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.preprocessing import clean_data, split_features_target
 from telco_churn.validation import validate_raw_dataset
 
 
-def split_train_test(features, target):
+def split_train_test(features, target, *, test_size: float = 0.20, random_state: int = 42):
     """Split features and target into reproducible training and test sets."""
     X_train, X_test, y_train, y_test = train_test_split(
         features,
         target,
-        test_size=0.20,
-        random_state=42,
+        test_size=test_size,
+        random_state=random_state,
         stratify=target,
     )
     return X_train, X_test, y_train, y_test
 
 
 def main() -> None:
-    data_path = (
-        Path(__file__).resolve().parents[2]
-        / "data"
-        / "raw"
-        / "Telco-Customer-Churn.csv"
-    )
+    settings = load_model_settings()
+    data_path = PROJECT_ROOT / "data" / "raw" / "Telco-Customer-Churn.csv"
     data = load_raw_dataset(data_path)
     validate_raw_dataset(data)
     cleaned_data = clean_data(data)
     customer_ids, features, target = split_features_target(cleaned_data)
-    X_train, X_test, y_train, y_test = split_train_test(features, target)
+    X_train, X_test, y_train, y_test = split_train_test(
+        features,
+        target,
+        test_size=settings.test_size,
+        random_state=settings.split_random_state,
+    )
 
     print("X_train shape:", X_train.shape)
     print("X_test shape:", X_test.shape)
@@ -49,8 +49,14 @@ def main() -> None:
     print(y_test.value_counts(normalize=True))
 
     models = {
-        "Logistic Regression": build_logistic_regression_model(X_train),
-        "Decision Tree": build_decision_tree_model(X_train),
+        "Logistic Regression": build_logistic_regression_model(
+            X_train,
+            max_iter=settings.logistic_regression_max_iter,
+        ),
+        "Decision Tree": build_decision_tree_model(
+            X_train,
+            random_state=settings.decision_tree_random_state,
+        ),
     }
     predictions_by_model = {}
     probabilities_by_model = {}
@@ -98,10 +104,13 @@ def main() -> None:
     print("\nPredictions:")
     print(predictions_df.head())
 
-    output_dir = Path(__file__).resolve().parents[2] / "output"
-    output_dir.mkdir(exist_ok=True)
-    predictions_df.to_csv(output_dir / "predictions.csv", index=False)
-    metrics.to_csv(output_dir / "model_comparison.csv", index=False)
+    settings.output_directory.mkdir(parents=True, exist_ok=True)
+    predictions_path = settings.output_directory / settings.predictions_filename
+    comparison_path = settings.output_directory / settings.comparison_filename
+    predictions_df.to_csv(predictions_path, index=False)
+    metrics.to_csv(comparison_path, index=False)
+    print(f"\nPredictions saved to: {predictions_path}")
+    print(f"Model comparison saved to: {comparison_path}")
 
 
 if __name__ == "__main__":

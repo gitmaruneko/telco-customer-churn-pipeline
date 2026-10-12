@@ -213,20 +213,21 @@ Python 3.11 or later is required.
 ## Run the Application
 
 ```powershell
-python main.py --input data/raw/Telco-Customer-Churn.csv
+python main.py --input data/raw/Telco-Customer-Churn.csv --output output
 ```
 
 The equivalent module command is:
 
 ```powershell
-python -m telco_churn.train --input data/raw/Telco-Customer-Churn.csv
+python -m telco_churn.train --input data/raw/Telco-Customer-Churn.csv --output output
 ```
 
 The application reports each loading, validation, cleaning, training,
-evaluation, and output step. It writes `output/model_comparison.csv` and
-`output/predictions.csv` after a successful run. The input must include the
-`Churn` target because this command trains the models and evaluates them on a
-held-out test split; it is not an inference command for unlabeled customers.
+evaluation, and output step. The `--output` argument selects the directory for
+`model_comparison.csv` and `predictions.csv`; it defaults to the project's
+`output/` directory. The input must include the `Churn` target because this
+command trains the models and evaluates them on a held-out test split; it is
+not an inference command for unlabeled customers.
 
 To print the detailed validation report without training models, run:
 

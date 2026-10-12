@@ -21,7 +21,9 @@ def make_pipeline_data(rows: int = 20) -> pd.DataFrame:
             "tenure": [index + 1 for index in range(rows)],
             "PhoneService": ["Yes"] * rows,
             "MultipleLines": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
-            "InternetService": ["DSL" if index % 2 == 0 else "Fiber optic" for index in range(rows)],
+            "InternetService": [
+                "DSL" if index % 2 == 0 else "Fiber optic" for index in range(rows)
+            ],
             "OnlineSecurity": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
             "OnlineBackup": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
             "DeviceProtection": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
@@ -31,12 +33,9 @@ def make_pipeline_data(rows: int = 20) -> pd.DataFrame:
             "Contract": [
                 "One year" if index % 2 == 0 else "Month-to-month" for index in range(rows)
             ],
-            "PaperlessBilling": [
-                "No" if index % 2 == 0 else "Yes" for index in range(rows)
-            ],
+            "PaperlessBilling": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
             "PaymentMethod": [
-                "Mailed check" if index % 2 == 0 else "Electronic check"
-                for index in range(rows)
+                "Mailed check" if index % 2 == 0 else "Electronic check" for index in range(rows)
             ],
             "MonthlyCharges": [50.0 + index for index in range(rows)],
             "TotalCharges": [str((index + 1) * 50.0) for index in range(rows)],

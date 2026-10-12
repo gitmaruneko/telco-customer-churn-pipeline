@@ -1,7 +1,12 @@
 import pandas as pd
 
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
-from telco_churn.train import build_predictions_output, split_train_test
+from telco_churn.train import (
+    DEFAULT_INPUT_PATH,
+    build_predictions_output,
+    run_pipeline,
+    split_train_test,
+)
 
 
 def test_train_test_split_is_reproducible_and_stratified() -> None:
@@ -63,3 +68,26 @@ def test_prediction_output_contains_required_columns() -> None:
         "decision_tree_predicted_churn",
         "decision_tree_churn_probability",
     ]
+
+
+def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> None:
+    metrics, predictions = run_pipeline(DEFAULT_INPUT_PATH, tmp_path)
+
+    output = capsys.readouterr().out
+    steps = [
+        "[1] Loading data...",
+        "[2] Validating data...",
+        "[3] Cleaning data...",
+        "[4] Training models...",
+        "[5] Evaluating models...",
+        "[6] Writing predictions...",
+    ]
+
+    assert [output.index(step) for step in steps] == sorted(output.index(step) for step in steps)
+    assert "Rows loaded: 7043" in output
+    assert "Pipeline completed successfully." in output
+    assert metrics["Model"].tolist() == ["Logistic Regression", "Decision Tree"]
+    assert set(predictions["predicted_churn"]).issubset({0, 1})
+    assert set(predictions["decision_tree_predicted_churn"]).issubset({0, 1})
+    assert (tmp_path / "model_comparison.csv").is_file()
+    assert (tmp_path / "predictions.csv").is_file()

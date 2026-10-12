@@ -2,11 +2,46 @@ import pandas as pd
 
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.train import (
-    DEFAULT_INPUT_PATH,
     build_predictions_output,
     run_pipeline,
     split_train_test,
 )
+
+
+def make_pipeline_data(rows: int = 20) -> pd.DataFrame:
+    """Build a small valid labeled dataset for pipeline integration tests."""
+    return pd.DataFrame(
+        {
+            "customerID": [f"customer-{index:03d}" for index in range(rows)],
+            "gender": ["Female" if index % 2 == 0 else "Male" for index in range(rows)],
+            "SeniorCitizen": [index % 2 for index in range(rows)],
+            "Partner": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
+            "Dependents": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
+            "tenure": [index + 1 for index in range(rows)],
+            "PhoneService": ["Yes"] * rows,
+            "MultipleLines": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
+            "InternetService": ["DSL" if index % 2 == 0 else "Fiber optic" for index in range(rows)],
+            "OnlineSecurity": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
+            "OnlineBackup": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
+            "DeviceProtection": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
+            "TechSupport": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
+            "StreamingTV": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
+            "StreamingMovies": ["Yes" if index % 2 == 0 else "No" for index in range(rows)],
+            "Contract": [
+                "One year" if index % 2 == 0 else "Month-to-month" for index in range(rows)
+            ],
+            "PaperlessBilling": [
+                "No" if index % 2 == 0 else "Yes" for index in range(rows)
+            ],
+            "PaymentMethod": [
+                "Mailed check" if index % 2 == 0 else "Electronic check"
+                for index in range(rows)
+            ],
+            "MonthlyCharges": [50.0 + index for index in range(rows)],
+            "TotalCharges": [str((index + 1) * 50.0) for index in range(rows)],
+            "Churn": ["No" if index % 2 == 0 else "Yes" for index in range(rows)],
+        }
+    )
 
 
 def test_train_test_split_is_reproducible_and_stratified() -> None:
@@ -71,7 +106,11 @@ def test_prediction_output_contains_required_columns() -> None:
 
 
 def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> None:
-    metrics, predictions = run_pipeline(DEFAULT_INPUT_PATH, tmp_path)
+    input_path = tmp_path / "customers.csv"
+    output_dir = tmp_path / "output"
+    make_pipeline_data().to_csv(input_path, index=False)
+
+    metrics, predictions = run_pipeline(input_path, output_dir)
 
     output = capsys.readouterr().out
     steps = [
@@ -84,10 +123,10 @@ def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> N
     ]
 
     assert [output.index(step) for step in steps] == sorted(output.index(step) for step in steps)
-    assert "Rows loaded: 7043" in output
+    assert "Rows loaded: 20" in output
     assert "Pipeline completed successfully." in output
     assert metrics["Model"].tolist() == ["Logistic Regression", "Decision Tree"]
     assert set(predictions["predicted_churn"]).issubset({0, 1})
     assert set(predictions["decision_tree_predicted_churn"]).issubset({0, 1})
-    assert (tmp_path / "model_comparison.csv").is_file()
-    assert (tmp_path / "predictions.csv").is_file()
+    assert (output_dir / "model_comparison.csv").is_file()
+    assert (output_dir / "predictions.csv").is_file()

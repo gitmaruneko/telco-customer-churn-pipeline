@@ -20,23 +20,42 @@ def test_root_main_delegates_arguments(monkeypatch) -> None:
     assert received_arguments == ["--input", "customers.csv"]
 
 
-def test_train_main_passes_input_path_to_pipeline(monkeypatch, tmp_path: Path) -> None:
+def test_train_main_passes_input_and_output_paths_to_pipeline(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     input_path = tmp_path / "customers.csv"
-    received_input = None
+    output_dir = tmp_path / "results"
+    received_paths = None
 
-    def fake_run_pipeline(path, output_dir=train.DEFAULT_OUTPUT_DIR):
-        nonlocal received_input
-        received_input = path
+    def fake_run_pipeline(path, output_path):
+        nonlocal received_paths
+        received_paths = (path, output_path)
+
+    monkeypatch.setattr(train, "run_pipeline", fake_run_pipeline)
+
+    train.main(["--input", str(input_path), "--output", str(output_dir)])
+
+    assert received_paths == (input_path, output_dir)
+
+
+def test_train_main_uses_default_output_directory(monkeypatch, tmp_path: Path) -> None:
+    input_path = tmp_path / "customers.csv"
+    received_output = None
+
+    def fake_run_pipeline(path, output_dir):
+        nonlocal received_output
+        received_output = output_dir
 
     monkeypatch.setattr(train, "run_pipeline", fake_run_pipeline)
 
     train.main(["--input", str(input_path)])
 
-    assert received_input == input_path
+    assert received_output == train.DEFAULT_OUTPUT_DIR
 
 
 def test_train_main_reports_missing_input_without_success(monkeypatch, capsys) -> None:
-    def fake_run_pipeline(path, output_dir=train.DEFAULT_OUTPUT_DIR):
+    def fake_run_pipeline(path, output_dir):
         raise FileNotFoundError(path)
 
     monkeypatch.setattr(train, "run_pipeline", fake_run_pipeline)

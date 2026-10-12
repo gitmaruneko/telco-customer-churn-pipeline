@@ -149,6 +149,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_INPUT_PATH,
         help="Path to the labeled Telco customer churn CSV.",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        metavar="DIR",
+        help="Directory for generated CSV files (default: project output directory).",
+    )
     return parser.parse_args(argv)
 
 
@@ -156,8 +163,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     """Run the command-line training application."""
     args = parse_args(argv)
     try:
-        run_pipeline(args.input)
-    except (FileNotFoundError, DatasetValidationError) as error:
+        run_pipeline(args.input, args.output)
+    except (OSError, DatasetValidationError) as error:
         print(f"Pipeline failed: {error}", file=sys.stderr)
         raise SystemExit(1) from None
 

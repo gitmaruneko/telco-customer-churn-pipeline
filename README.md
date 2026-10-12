@@ -24,6 +24,20 @@ The model predicts whether a customer is likely to:
 
 This helps identify at-risk customers and supports retention actions.
 
+## Dataset Overview
+
+The project uses the IBM Telco Customer Churn dataset, which contains 7,043
+customer records and 21 columns. The binary target is `Churn`: 26.5% of
+customers churned and 73.5% were retained.
+
+The columns describe:
+
+- customer demographics, such as gender, senior citizen status, partner, and dependents
+- account history, including tenure and contract type
+- phone, internet, streaming, security, backup, and support services
+- billing choices, monthly charges, and total charges
+- the customer identifier and churn target
+
 ## Project Roadmap
 
 1. **Environment setup**: create a virtual environment and install project dependencies.
@@ -36,6 +50,33 @@ This helps identify at-risk customers and supports retention actions.
 8. **Automation**: add tests and GitHub Actions for reproducibility.
 9. **Presentation**: summarize findings and business impact.
 
+## Project Architecture
+
+The production workflow is organized by responsibility:
+
+```text
+data/raw/Telco-Customer-Churn.csv
+	-> data.py             Load the raw CSV while preserving quality issues
+	-> validation.py       Validate the schema and report data-quality issues
+	-> preprocessing.py    Clean values, split features/target, encode, and scale
+	-> models.py           Build Logistic Regression and Decision Tree pipelines
+	-> train.py            Split data, train models, evaluate, and create outputs
+	-> output/             Write model_comparison.csv and predictions.csv
+```
+
+## Validation Checks
+
+Before training, the raw-data gate verifies that all required columns exist,
+the dataset is not empty, and `customerID` values are unique. The detailed
+validation report also checks:
+
+- null and blank values
+- whether `TotalCharges` values can be converted to numeric values
+- whether `tenure` is between 0 and 72 months
+- whether `MonthlyCharges` and `TotalCharges` contain negative values
+- whether `Churn` contains only `Yes` and `No` before encoding
+- whether categorical columns contain unexpected values
+
 ## Data Cleaning and Preprocessing Decisions
 
 - The raw dataset is not modified directly. `clean_data` creates a copy so the original values remain available for comparison and reproducibility.
@@ -46,11 +87,33 @@ This helps identify at-risk customers and supports retention actions.
 - Numerical feature columns are standardized so they are on comparable scales, which helps Logistic Regression converge.
 - The `ColumnTransformer` applies one-hot encoding to categorical columns and standardization to numerical columns. To prevent data leakage, fit the preprocessor on the training data only, then use it to transform both training and test data.
 
+## Model Features
+
+The model uses 19 input features. `customerID` is retained only to associate
+predictions with customers, and `Churn` is used as the target.
+
+- **Demographic:** `gender`, `SeniorCitizen`, `Partner`, `Dependents`
+- **Account:** `tenure`, `Contract`, `PaperlessBilling`, `PaymentMethod`
+- **Services:** `PhoneService`, `MultipleLines`, `InternetService`, `OnlineSecurity`, `OnlineBackup`, `DeviceProtection`, `TechSupport`, `StreamingTV`, `StreamingMovies`
+- **Charges:** `MonthlyCharges`, `TotalCharges`
+
 ## Train/Test Split
 
 - The data is split into 80% training data and 20% test data (`test_size=0.20`).
 - `random_state=42` is fixed so the same split can be reproduced across runs.
 - The split is stratified by the `Churn` target (`stratify=target`) to preserve the churn-class proportions in both sets.
+
+## Exploratory Data Analysis Findings
+
+- Churn is imbalanced: 26.5% of customers churned, while 73.5% were retained.
+- Month-to-month customers represent 55% of the dataset and have a 42.7% churn rate, compared with 11.3% for one-year and 2.8% for two-year contracts.
+- Customers with 0–12 months of tenure have the highest churn rate at 47.4%; churn decreases across longer-tenure groups.
+- Churned customers have higher average monthly charges ($74.44) than retained customers ($61.27).
+- Customers without TechSupport have a 41.6% churn rate, compared with 15.2% for customers with TechSupport.
+- Fiber optic customers have a 41.9% churn rate, compared with 19.0% for DSL customers and 7.4% for customers without internet service.
+
+These findings describe associations in this dataset and do not establish
+that any feature causes churn.
 
 ## Model Comparison and Evaluation
 
@@ -74,6 +137,18 @@ label order is `0` = no churn and `1` = churn):
 | Logistic Regression | 926 | 109 | 165 | 209 |
 | Decision Tree | 832 | 203 | 188 | 186 |
 
+## Example Output
+
+The training command writes aggregate metrics to `output/model_comparison.csv`
+and customer-level predictions to `output/predictions.csv`. One prediction row
+has the following form:
+
+| customerID | actual_churn | predicted_churn | churn_probability | decision_tree_predicted_churn | decision_tree_churn_probability |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 4376-KFVRS | 0 | 0 | 0.0459 | 0 | 0.0 |
+
+## Limitations
+
 In this baseline run, Logistic Regression performs better on every reported
 test metric and has similar training and test accuracy. The default Decision
 Tree reaches 0.9980 training accuracy but only 0.7225 test accuracy, a large
@@ -90,6 +165,18 @@ on customers who would not churn. The better model for deployment depends on
 the relative cost of missed churn versus unnecessary interventions, as well as
 interpretability and validation on additional data.
 
+Additional limitations include the use of one public dataset and one holdout
+split, class imbalance, and no probability-threshold optimization. Filling the
+11 blank `TotalCharges` values with zero is supported by their zero-tenure
+records, but remains a modeling assumption.
+
+## Future Improvements
+
+- Use cross-validation and tune model hyperparameters, including Decision Tree depth.
+- Select and calibrate a classification threshold using retention costs and churn risk.
+- Validate the selected model on additional data and monitor data or performance drift.
+- Evaluate additional feature engineering and interpretable model explanations.
+
 ## Project Structure
 
 ```text
@@ -103,15 +190,25 @@ tests/              Unit tests for project logic
 ## Setup
 
 ```powershell
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements.txt
 ```
 
-## Validation
+Python 3.11 or later is required.
+
+## Run the Application
 
 ```powershell
 python -m telco_churn.validation
 python -m telco_churn.train
-pytest
+```
+
+The validation command prints a data-quality report. The training command
+trains both models and writes the two CSV files under `output/`.
+
+## Run Tests
+
+```powershell
+python -m pytest
 ruff check .
 ```
 

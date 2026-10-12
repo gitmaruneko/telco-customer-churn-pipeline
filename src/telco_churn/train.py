@@ -28,6 +28,25 @@ def split_train_test(features, target):
     return X_train, X_test, y_train, y_test
 
 
+def build_predictions_output(
+    customer_ids,
+    actual_churn,
+    predictions_by_model,
+    probabilities_by_model,
+) -> pd.DataFrame:
+    """Build the customer-level prediction output table."""
+    return pd.DataFrame(
+        {
+            "customerID": customer_ids.to_numpy(),
+            "actual_churn": actual_churn.to_numpy(),
+            "predicted_churn": predictions_by_model["Logistic Regression"],
+            "churn_probability": probabilities_by_model["Logistic Regression"],
+            "decision_tree_predicted_churn": predictions_by_model["Decision Tree"],
+            "decision_tree_churn_probability": probabilities_by_model["Decision Tree"],
+        }
+    )
+
+
 def main() -> None:
     data_path = (
         Path(__file__).resolve().parents[2]
@@ -85,15 +104,11 @@ def main() -> None:
     print(metrics.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
 
     test_customer_ids = customer_ids.loc[X_test.index]
-    predictions_df = pd.DataFrame(
-        {
-            "customerID": test_customer_ids.to_numpy(),
-            "actual_churn": y_test.to_numpy(),
-            "predicted_churn": predictions_by_model["Logistic Regression"],
-            "churn_probability": probabilities_by_model["Logistic Regression"],
-            "decision_tree_predicted_churn": predictions_by_model["Decision Tree"],
-            "decision_tree_churn_probability": probabilities_by_model["Decision Tree"],
-        }
+    predictions_df = build_predictions_output(
+        test_customer_ids,
+        y_test,
+        predictions_by_model,
+        probabilities_by_model,
     )
     print("\nPredictions:")
     print(predictions_df.head())

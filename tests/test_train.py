@@ -1,7 +1,7 @@
 import pandas as pd
 
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
-from telco_churn.train import split_train_test
+from telco_churn.train import build_predictions_output, split_train_test
 
 
 def test_train_test_split_is_reproducible_and_stratified() -> None:
@@ -34,6 +34,32 @@ def test_both_model_builders_fit_and_predict() -> None:
     for build_model in (build_logistic_regression_model, build_decision_tree_model):
         model = build_model(features)
         model.fit(features, target)
+        predictions = model.predict(features)
 
-        assert model.predict(features).shape == target.shape
+        assert predictions.shape == target.shape
+        assert set(predictions).issubset({0, 1})
         assert model.predict_proba(features).shape == (len(features), 2)
+
+
+def test_prediction_output_contains_required_columns() -> None:
+    predictions = build_predictions_output(
+        customer_ids=pd.Series(["0001-AAAAA", "0002-BBBBB"]),
+        actual_churn=pd.Series([0, 1]),
+        predictions_by_model={
+            "Logistic Regression": [0, 1],
+            "Decision Tree": [0, 1],
+        },
+        probabilities_by_model={
+            "Logistic Regression": [0.1, 0.9],
+            "Decision Tree": [0.2, 0.8],
+        },
+    )
+
+    assert predictions.columns.tolist() == [
+        "customerID",
+        "actual_churn",
+        "predicted_churn",
+        "churn_probability",
+        "decision_tree_predicted_churn",
+        "decision_tree_churn_probability",
+    ]

@@ -1,6 +1,11 @@
 import pandas as pd
+import pytest
 
-from telco_churn.validation import create_validation_report
+from telco_churn.validation import (
+    DatasetValidationError,
+    check_churn_valid_values,
+    create_validation_report,
+)
 
 
 def make_valid_data() -> pd.DataFrame:
@@ -69,3 +74,13 @@ def test_validation_report_marks_data_quality_issues_for_review() -> None:
     assert "gender: 'Unknown' (1)" in report
     assert "Churn: 'Maybe' (1)" in report
     assert "Overall status: REVIEW" in report
+
+
+def test_churn_values_are_valid_before_encoding() -> None:
+    data = make_valid_data()
+    check_churn_valid_values(data)
+
+    data.loc[0, "Churn"] = "Maybe"
+
+    with pytest.raises(DatasetValidationError, match="Invalid Churn values"):
+        check_churn_valid_values(data)

@@ -198,12 +198,26 @@ Python 3.11 or later is required.
 ## Run the Application
 
 ```powershell
-python -m telco_churn.validation
-python -m telco_churn.train
+python main.py --input data/raw/Telco-Customer-Churn.csv
 ```
 
-The validation command prints a data-quality report. The training command
-trains both models and writes the two CSV files under `output/`.
+The equivalent module command is:
+
+```powershell
+python -m telco_churn.train --input data/raw/Telco-Customer-Churn.csv
+```
+
+The application reports each loading, validation, cleaning, training,
+evaluation, and output step. It writes `output/model_comparison.csv` and
+`output/predictions.csv` after a successful run. The input must include the
+`Churn` target because this command trains the models and evaluates them on a
+held-out test split; it is not an inference command for unlabeled customers.
+
+To print the detailed validation report without training models, run:
+
+```powershell
+python -m telco_churn.validation
+```
 
 ## Run Tests
 

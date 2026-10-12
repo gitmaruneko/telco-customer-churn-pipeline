@@ -37,8 +37,6 @@ def clean_data(data):
         "No": 0,
     })
 
-    print(cleaned_data["Churn"].value_counts())
-    print(cleaned_data["Churn"].dtype)
     return cleaned_data
 
 # X / y

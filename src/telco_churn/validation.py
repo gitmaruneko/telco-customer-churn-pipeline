@@ -166,9 +166,7 @@ def create_validation_report(data: pd.DataFrame) -> str:
         f"{column} ({count})" for column, count in missing_values.items() if count > 0
     ]
 
-    duplicate_count = (
-        check_duplicate_customer_ids(data) if "customerID" in data.columns else None
-    )
+    duplicate_count = check_duplicate_customer_ids(data) if "customerID" in data.columns else None
     total_conversion_issues = (
         check_total_charges_conversion(data) if "TotalCharges" in data.columns else None
     )

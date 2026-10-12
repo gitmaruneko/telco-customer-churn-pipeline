@@ -16,14 +16,12 @@ from telco_churn.data import load_raw_dataset
 # [x] Prepare categorical encoding approach
 # [x] Document cleaning decisions in README
 
+
 def clean_data(data):
     """Clean the raw Telco churn dataset without modifying the original data."""
     cleaned_data = data.copy()
 
-    cleaned_data["TotalCharges"] = pd.to_numeric(
-        cleaned_data["TotalCharges"],
-        errors="coerce"
-    )
+    cleaned_data["TotalCharges"] = pd.to_numeric(cleaned_data["TotalCharges"], errors="coerce")
 
     cleaned_data["TotalCharges"] = cleaned_data["TotalCharges"].fillna(0)
 
@@ -32,12 +30,15 @@ def clean_data(data):
     # print("Cleaned TotalCharges missing:", cleaned_data["TotalCharges"].isna().sum())
     # print("Raw blank TotalCharges:", (data["TotalCharges"] == " ").sum())
     # print("Cleaned blank TotalCharges:", (cleaned_data["TotalCharges"] == " ").sum())
-    cleaned_data["Churn"] = cleaned_data["Churn"].map({
-        "Yes": 1,
-        "No": 0,
-    })
+    cleaned_data["Churn"] = cleaned_data["Churn"].map(
+        {
+            "Yes": 1,
+            "No": 0,
+        }
+    )
 
     return cleaned_data
+
 
 # X / y
 def split_features_target(data):
@@ -46,6 +47,7 @@ def split_features_target(data):
     features = data.drop(columns=["customerID", "Churn"])
     target = data["Churn"].copy()
     return customer_ids, features, target
+
 
 # encoding
 # Machine learning models cannot directly use text categories such as
@@ -109,6 +111,7 @@ def build_preprocessor(features):
     )
     return preprocessor
 
+
 # StandardScaler 做的概念是把不同尺度的數字轉到比較接近的範圍。例如原本可能是：
 # SeniorCitizen     1
 # tenure           60
@@ -124,14 +127,11 @@ def build_preprocessor(features):
 # 接近平均 → 接近 0
 
 
-
-
 def main() -> None:
     data_path = Path(__file__).resolve().parents[2] / "data" / "raw" / "Telco-Customer-Churn.csv"
     data = load_raw_dataset(data_path)
     _cleaned_data = clean_data(data)
     # customer_ids, features, target = split_features_target(cleaned_data)
-
 
 
 if __name__ == "__main__":

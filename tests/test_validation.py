@@ -4,6 +4,8 @@ import pytest
 from telco_churn.validation import (
     DatasetValidationError,
     check_churn_valid_values,
+    check_monthly_charges_non_negative,
+    check_total_charges_non_negative,
     create_validation_report,
 )
 
@@ -84,3 +86,19 @@ def test_churn_values_are_valid_before_encoding() -> None:
 
     with pytest.raises(DatasetValidationError, match="Invalid Churn values"):
         check_churn_valid_values(data)
+
+
+def test_negative_monthly_charges_are_rejected() -> None:
+    data = make_valid_data()
+    data.loc[0, "MonthlyCharges"] = -0.01
+
+    with pytest.raises(DatasetValidationError, match="Invalid MonthlyCharges values"):
+        check_monthly_charges_non_negative(data)
+
+
+def test_negative_total_charges_are_rejected() -> None:
+    data = make_valid_data()
+    data.loc[0, "TotalCharges"] = "-0.01"
+
+    with pytest.raises(DatasetValidationError, match="Invalid TotalCharges values"):
+        check_total_charges_non_negative(data)

@@ -1,5 +1,9 @@
+from io import BytesIO
+
 import pandas as pd
 
+import telco_churn.data as data_module
+import telco_churn.train as train_module
 from telco_churn.config import ModelSettings
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.train import (
@@ -150,3 +154,33 @@ def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> N
     assert set(predictions["decision_tree_predicted_churn"]).issubset({0, 1})
     assert (output_dir / "metrics.csv").is_file()
     assert (output_dir / "customer_predictions.csv").is_file()
+
+
+def test_run_pipeline_downloads_missing_default_dataset(tmp_path, capsys, monkeypatch) -> None:
+    input_path = tmp_path / "data" / "raw" / "Telco-Customer-Churn.csv"
+    output_dir = tmp_path / "output"
+    payload = make_pipeline_data().to_csv(index=False).encode("utf-8")
+    requested_urls = []
+
+    def fake_urlopen(url: str, timeout: int):
+        requested_urls.append((url, timeout))
+        return BytesIO(payload)
+
+    monkeypatch.setattr(train_module, "DEFAULT_INPUT_PATH", input_path)
+    monkeypatch.setattr(data_module, "urlopen", fake_urlopen)
+
+    settings = ModelSettings(
+        test_size=0.20,
+        split_random_state=7,
+        logistic_regression_max_iter=250,
+        decision_tree_random_state=11,
+        output_directory=output_dir,
+        predictions_filename="customer_predictions.csv",
+        comparison_filename="metrics.csv",
+    )
+    run_pipeline(input_path, output_dir, settings)
+
+    output = capsys.readouterr().out
+    assert "Dataset not found" in output
+    assert input_path.is_file()
+    assert requested_urls == [(data_module.DATASET_URL, 30)]

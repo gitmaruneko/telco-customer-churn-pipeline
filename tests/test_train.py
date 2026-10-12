@@ -1,5 +1,6 @@
 import pandas as pd
 
+from telco_churn.config import ModelSettings
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.train import (
     build_predictions_output,
@@ -81,6 +82,16 @@ def test_both_model_builders_fit_and_predict() -> None:
         assert model.predict_proba(features).shape == (len(features), 2)
 
 
+def test_model_builders_use_configured_hyperparameters() -> None:
+    features = pd.DataFrame({"tenure": [1, 2]})
+
+    logistic_model = build_logistic_regression_model(features, max_iter=250)
+    tree_model = build_decision_tree_model(features, random_state=7)
+
+    assert logistic_model.named_steps["classifier"].max_iter == 250
+    assert tree_model.named_steps["classifier"].random_state == 7
+
+
 def test_prediction_output_contains_required_columns() -> None:
     predictions = build_predictions_output(
         customer_ids=pd.Series(["0001-AAAAA", "0002-BBBBB"]),
@@ -110,7 +121,17 @@ def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> N
     output_dir = tmp_path / "output"
     make_pipeline_data().to_csv(input_path, index=False)
 
-    metrics, predictions = run_pipeline(input_path, output_dir)
+    settings = ModelSettings(
+        test_size=0.20,
+        split_random_state=7,
+        logistic_regression_max_iter=250,
+        decision_tree_random_state=11,
+        output_directory=output_dir,
+        predictions_filename="customer_predictions.csv",
+        comparison_filename="metrics.csv",
+    )
+
+    metrics, predictions = run_pipeline(input_path, output_dir, settings)
 
     output = capsys.readouterr().out
     steps = [
@@ -128,5 +149,5 @@ def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> N
     assert metrics["Model"].tolist() == ["Logistic Regression", "Decision Tree"]
     assert set(predictions["predicted_churn"]).issubset({0, 1})
     assert set(predictions["decision_tree_predicted_churn"]).issubset({0, 1})
-    assert (output_dir / "model_comparison.csv").is_file()
-    assert (output_dir / "predictions.csv").is_file()
+    assert (output_dir / "metrics.csv").is_file()
+    assert (output_dir / "customer_predictions.csv").is_file()

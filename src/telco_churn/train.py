@@ -14,7 +14,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 
 from telco_churn.config import ModelSettings, load_model_settings
-from telco_churn.data import load_raw_dataset
+from telco_churn.data import download_raw_dataset, load_raw_dataset
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.preprocessing import clean_data, split_features_target
 from telco_churn.validation import DatasetValidationError, validate_raw_dataset
@@ -76,6 +76,9 @@ def run_pipeline(
     print("=" * 40)
 
     print("[1] Loading data...")
+    if not input_path.exists() and input_path.resolve() == DEFAULT_INPUT_PATH.resolve():
+        print(f"Dataset not found at {input_path}; downloading the IBM dataset...")
+        download_raw_dataset(input_path)
     data = load_raw_dataset(input_path)
     print(f"Rows loaded: {len(data)}")
 

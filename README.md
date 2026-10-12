@@ -40,8 +40,10 @@ The columns describe:
 
 ### Download the Dataset
 
-The raw CSV is not stored in Git. Download the IBM dataset and save it as
-`data/raw/Telco-Customer-Churn.csv` before running the application:
+The raw CSV is not stored in Git. On the first run, the application automatically
+downloads the IBM dataset to `data/raw/Telco-Customer-Churn.csv` when that default
+input file is missing. This requires an internet connection. To download it
+manually instead:
 
 ```powershell
 New-Item -ItemType Directory -Force data/raw
@@ -51,7 +53,9 @@ Invoke-WebRequest `
 ```
 
 Keep this file unchanged. Cleaning creates a separate DataFrame in memory and
-does not overwrite the raw CSV.
+does not overwrite the raw CSV. If you pass a custom `--input` path, make sure
+that file already exists; automatic download applies only to the default dataset
+path.
 
 ## Project Roadmap
 

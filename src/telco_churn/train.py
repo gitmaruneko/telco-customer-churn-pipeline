@@ -13,6 +13,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
+from telco_churn.config import ModelSettings, load_model_settings
 from telco_churn.data import load_raw_dataset
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.preprocessing import clean_data, split_features_target
@@ -20,16 +21,23 @@ from telco_churn.validation import DatasetValidationError, validate_raw_dataset
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "raw" / "Telco-Customer-Churn.csv"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "output"
+DEFAULT_SETTINGS = load_model_settings()
+DEFAULT_OUTPUT_DIR = DEFAULT_SETTINGS.output_directory
 
 
-def split_train_test(features, target):
+def split_train_test(
+    features,
+    target,
+    *,
+    test_size: float = DEFAULT_SETTINGS.test_size,
+    random_state: int = DEFAULT_SETTINGS.split_random_state,
+):
     """Split features and target into reproducible training and test sets."""
     X_train, X_test, y_train, y_test = train_test_split(
         features,
         target,
-        test_size=0.20,
-        random_state=42,
+        test_size=test_size,
+        random_state=random_state,
         stratify=target,
     )
     return X_train, X_test, y_train, y_test
@@ -57,6 +65,7 @@ def build_predictions_output(
 def run_pipeline(
     input_path: str | Path,
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
+    settings: ModelSettings = DEFAULT_SETTINGS,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run the training pipeline and return metrics and customer predictions."""
     input_path = Path(input_path)
@@ -77,13 +86,24 @@ def run_pipeline(
     print("[3] Cleaning data...")
     cleaned_data = clean_data(data)
     customer_ids, features, target = split_features_target(cleaned_data)
-    X_train, X_test, y_train, y_test = split_train_test(features, target)
+    X_train, X_test, y_train, y_test = split_train_test(
+        features,
+        target,
+        test_size=settings.test_size,
+        random_state=settings.split_random_state,
+    )
     print("Cleaning complete.")
 
     print("[4] Training models...")
     models = {
-        "Logistic Regression": build_logistic_regression_model(X_train),
-        "Decision Tree": build_decision_tree_model(X_train),
+        "Logistic Regression": build_logistic_regression_model(
+            X_train,
+            max_iter=settings.logistic_regression_max_iter,
+        ),
+        "Decision Tree": build_decision_tree_model(
+            X_train,
+            random_state=settings.decision_tree_random_state,
+        ),
     }
     for model in models.values():
         model.fit(X_train, y_train)
@@ -130,8 +150,8 @@ def run_pipeline(
     )
     print("[6] Writing predictions...")
     output_dir.mkdir(parents=True, exist_ok=True)
-    predictions_path = output_dir / "predictions.csv"
-    metrics_path = output_dir / "model_comparison.csv"
+    predictions_path = output_dir / settings.predictions_filename
+    metrics_path = output_dir / settings.comparison_filename
     predictions_df.to_csv(predictions_path, index=False)
     metrics.to_csv(metrics_path, index=False)
     print(f"Saved: {predictions_path}")

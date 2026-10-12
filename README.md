@@ -195,6 +195,7 @@ records, but remains a modeling assumption.
 ## Project Structure
 
 ```text
+config/             Model, split, and output settings
 data/               Raw and processed datasets
 notebooks/          Exploratory notebooks and experiments
 output/             Model comparison metrics and customer predictions
@@ -210,6 +211,14 @@ python -m pip install -r requirements.txt
 
 Python 3.11 or later is required.
 
+## Model Configuration
+
+`config/model.toml` controls the train/test split, Logistic Regression
+`max_iter`, Decision Tree random state, default output directory, and output
+filenames. Relative output directories are resolved from the project root.
+Invalid split ratios and non-positive `max_iter` values are rejected when the
+configuration is loaded.
+
 ## Run the Application
 
 ```powershell
@@ -224,10 +233,11 @@ python -m telco_churn.train --input data/raw/Telco-Customer-Churn.csv --output o
 
 The application reports each loading, validation, cleaning, training,
 evaluation, and output step. The `--output` argument selects the directory for
-`model_comparison.csv` and `predictions.csv`; it defaults to the project's
-`output/` directory. The input must include the `Churn` target because this
-command trains the models and evaluates them on a held-out test split; it is
-not an inference command for unlabeled customers.
+the configured output files and overrides only the directory from
+`config/model.toml`. It defaults to the configured `output/` directory. The
+input must include the `Churn` target because this command trains the models
+and evaluates them on a held-out test split; it is not an inference command
+for unlabeled customers.
 
 To print the detailed validation report without training models, run:
 

@@ -38,6 +38,21 @@ The columns describe:
 - billing choices, monthly charges, and total charges
 - the customer identifier and churn target
 
+### Download the Dataset
+
+The raw CSV is not stored in Git. Download the IBM dataset and save it as
+`data/raw/Telco-Customer-Churn.csv` before running the application:
+
+```powershell
+New-Item -ItemType Directory -Force data/raw
+Invoke-WebRequest `
+	-Uri "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv" `
+	-OutFile "data/raw/Telco-Customer-Churn.csv"
+```
+
+Keep this file unchanged. Cleaning creates a separate DataFrame in memory and
+does not overwrite the raw CSV.
+
 ## Project Roadmap
 
 1. **Environment setup**: create a virtual environment and install project dependencies.

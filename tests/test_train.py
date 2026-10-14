@@ -8,6 +8,7 @@ from telco_churn.config import ModelSettings
 from telco_churn.models import build_decision_tree_model, build_logistic_regression_model
 from telco_churn.train import (
     build_predictions_output,
+    print_evaluation_report,
     run_pipeline,
     split_train_test,
 )
@@ -119,6 +120,52 @@ def test_prediction_output_contains_required_columns() -> None:
     ]
 
 
+def test_evaluation_report_is_compact_and_preserves_metrics(capsys) -> None:
+    metrics = pd.DataFrame(
+        [
+            {
+                "Model": "Logistic Regression",
+                "Train Accuracy": 0.8056,
+                "Test Accuracy": 0.8055,
+                "Precision": 0.6572,
+                "Recall": 0.5588,
+                "F1": 0.6040,
+            },
+            {
+                "Model": "Decision Tree",
+                "Train Accuracy": 0.9980,
+                "Test Accuracy": 0.7225,
+                "Precision": 0.4781,
+                "Recall": 0.4973,
+                "F1": 0.4875,
+            },
+        ]
+    )
+    original_metrics = metrics.copy(deep=True)
+    matrices = {
+        "Logistic Regression": [[926, 109], [165, 209]],
+        "Decision Tree": [[832, 203], [188, 186]],
+    }
+
+    print_evaluation_report(metrics, matrices)
+
+    output = capsys.readouterr().out
+    performance, confusion = output.split("Confusion counts (positive = churn)")
+    for _, row in metrics.iterrows():
+        line = next(line for line in performance.splitlines() if row["Model"] in line)
+        assert line.split() == row["Model"].split() + [
+            f"{row[column]:.2%}" for column in metrics.columns if column != "Model"
+        ]
+    assert "TN/TP: correct no churn/churn | FP/FN: false alarm/missed churn" in confusion
+    header = next(line for line in confusion.splitlines() if "Model" in line)
+    assert header.split() == ["Model", "TN", "FP", "FN", "TP"]
+    for name, matrix in matrices.items():
+        line = next(line for line in confusion.splitlines() if name in line)
+        assert line.split() == name.split() + [str(value) for row in matrix for value in row]
+    assert len(output.splitlines()) == 11
+    pd.testing.assert_frame_equal(metrics, original_metrics)
+
+
 def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> None:
     input_path = tmp_path / "customers.csv"
     output_dir = tmp_path / "output"
@@ -138,22 +185,30 @@ def test_run_pipeline_reports_progress_and_writes_outputs(tmp_path, capsys) -> N
 
     output = capsys.readouterr().out
     steps = [
-        "[1] Loading data...",
-        "[2] Validating data...",
-        "[3] Cleaning data...",
-        "[4] Training models...",
-        "[5] Evaluating models...",
-        "[6] Writing predictions...",
+        "Data: 20 rows",
+        "Validation: OK",
+        "Cleaning: OK",
+        "Models: 2 trained",
+        "Model performance (%)",
+        "Confusion counts (positive = churn)",
+        "Predictions :",
+        "Comparison  :",
+        "Pipeline completed successfully.",
     ]
 
     assert [output.index(step) for step in steps] == sorted(output.index(step) for step in steps)
-    assert "Rows loaded: 20" in output
-    assert "Pipeline completed successfully." in output
+    assert (
+        "Data: 20 rows | Validation: OK | Cleaning: OK | Models: 2 trained" in output.splitlines()
+    )
+    assert f"Predictions : {output_dir / 'customer_predictions.csv'}" in output
+    assert f"Comparison  : {output_dir / 'metrics.csv'}" in output
     assert metrics["Model"].tolist() == ["Logistic Regression", "Decision Tree"]
     assert set(predictions["predicted_churn"]).issubset({0, 1})
     assert set(predictions["decision_tree_predicted_churn"]).issubset({0, 1})
     assert (output_dir / "metrics.csv").is_file()
     assert (output_dir / "customer_predictions.csv").is_file()
+    pd.testing.assert_frame_equal(pd.read_csv(output_dir / "metrics.csv"), metrics)
+    pd.testing.assert_frame_equal(pd.read_csv(output_dir / "customer_predictions.csv"), predictions)
 
 
 def test_run_pipeline_downloads_missing_default_dataset(tmp_path, capsys, monkeypatch) -> None:

@@ -62,6 +62,38 @@ def build_predictions_output(
     )
 
 
+def print_evaluation_report(
+    metrics: pd.DataFrame,
+    confusion_matrices: dict[str, list[list[int]]],
+) -> None:
+    """Display metrics and labeled confusion matrices without changing CSV data."""
+    print("\nModel performance (%)")
+    display_metrics = metrics.rename(
+        columns={"Train Accuracy": "Train Acc.", "Test Accuracy": "Test Acc."}
+    )
+    print(
+        display_metrics.to_string(
+            index=False,
+            float_format=lambda value: f"{value:.2%}",
+        )
+    )
+
+    print("\nConfusion counts (positive = churn)")
+    print("TN/TP: correct no churn/churn | FP/FN: false alarm/missed churn")
+    confusion_rows = []
+    for name, matrix in confusion_matrices.items():
+        confusion_rows.append(
+            {
+                "Model": name,
+                "TN": matrix[0][0],
+                "FP": matrix[0][1],
+                "FN": matrix[1][0],
+                "TP": matrix[1][1],
+            }
+        )
+    print(pd.DataFrame(confusion_rows).to_string(index=False))
+
+
 def run_pipeline(
     input_path: str | Path,
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
@@ -71,22 +103,18 @@ def run_pipeline(
     input_path = Path(input_path)
     output_dir = Path(output_dir)
 
-    print("=" * 40)
     print("TELCO CUSTOMER CHURN ANALYSIS")
-    print("=" * 40)
+    print("-" * 28)
 
-    print("[1] Loading data...")
     if not input_path.exists() and input_path.resolve() == DEFAULT_INPUT_PATH.resolve():
         print(f"Dataset not found at {input_path}; downloading the IBM dataset...")
         download_raw_dataset(input_path)
     data = load_raw_dataset(input_path)
-    print(f"Rows loaded: {len(data)}")
+    print(f"Data: {len(data):,} rows", end="", flush=True)
 
-    print("[2] Validating data...")
     validate_raw_dataset(data)
-    print("Validation complete.")
+    print(" | Validation: OK", end="", flush=True)
 
-    print("[3] Cleaning data...")
     cleaned_data = clean_data(data)
     customer_ids, features, target = split_features_target(cleaned_data)
     X_train, X_test, y_train, y_test = split_train_test(
@@ -95,9 +123,8 @@ def run_pipeline(
         test_size=settings.test_size,
         random_state=settings.split_random_state,
     )
-    print("Cleaning complete.")
+    print(" | Cleaning: OK", end="", flush=True)
 
-    print("[4] Training models...")
     models = {
         "Logistic Regression": build_logistic_regression_model(
             X_train,
@@ -110,9 +137,8 @@ def run_pipeline(
     }
     for model in models.values():
         model.fit(X_train, y_train)
-    print("Models trained.")
+    print(f" | Models: {len(models)} trained")
 
-    print("[5] Evaluating models...")
     predictions_by_model = {}
     probabilities_by_model = {}
     metric_rows = []
@@ -140,9 +166,7 @@ def run_pipeline(
         )
 
     metrics = pd.DataFrame(metric_rows)
-    print(metrics.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
-    for name, matrix in confusion_matrices.items():
-        print(f"{name} confusion matrix (labels=[0, 1]): {matrix}")
+    print_evaluation_report(metrics, confusion_matrices)
 
     test_customer_ids = customer_ids.loc[X_test.index]
     predictions_df = build_predictions_output(
@@ -151,14 +175,13 @@ def run_pipeline(
         predictions_by_model,
         probabilities_by_model,
     )
-    print("[6] Writing predictions...")
     output_dir.mkdir(parents=True, exist_ok=True)
     predictions_path = output_dir / settings.predictions_filename
     metrics_path = output_dir / settings.comparison_filename
     predictions_df.to_csv(predictions_path, index=False)
     metrics.to_csv(metrics_path, index=False)
-    print(f"Saved: {predictions_path}")
-    print(f"Saved: {metrics_path}")
+    print(f"\nPredictions : {predictions_path}")
+    print(f"Comparison  : {metrics_path}")
     print("Pipeline completed successfully.")
     return metrics, predictions_df
 
